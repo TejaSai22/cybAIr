@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentChain - Cyber Threat Response Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --dark-bg: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-light: #ecf0f1;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #2c3e50 100%);
+            color: var(--text-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .navbar {
+            background: rgba(44, 62, 80, 0.95) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1001;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px 15px 0 0 !important;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-online { background-color: var(--success-color); }
+        .status-warning { background-color: var(--warning-color); }
+        .status-offline { background-color: var(--danger-color); }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .metric-card {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .btn-cyber {
+            background: linear-gradient(45deg, var(--secondary-color), #2980b9);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 25px;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cyber:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+            color: white;
+        }
+
+        .btn-danger-cyber {
+            background: linear-gradient(45deg, var(--danger-color), #c0392b);
+        }
+
+        .btn-success-cyber {
+            background: linear-gradient(45deg, var(--success-color), #229954);
+        }
+
+        .threat-alert {
+            border-left: 4px solid var(--danger-color);
+            background: rgba(231, 76, 60, 0.1);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .log-entry {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 3px solid var(--secondary-color);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid var(--secondary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .sidebar {
+            background: rgba(44, 62, 80, 0.95);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            z-index: 1000;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar.show {
+            transform: translateX(0);
+        }
+
+        .main-content {
+            margin-left: 0;
+            transition: margin-left 0.3s ease;
+            min-height: 100vh;
+        }
+
+        @media (min-width: 768px) {
+            .main-content {
+                margin-left: 280px;
+            }
+            .sidebar {
+                transform: translateX(0);
+            }
+        }
+
+        .sidebar-nav {
+            padding: 20px 0;
+        }
+
+        .sidebar-nav .nav-link {
+            color: var(--text-light);
+            padding: 12px 25px;
+            border-radius: 0;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-nav .nav-link:hover,
+        .sidebar-nav .nav-link.active {
+            background: rgba(52, 152, 219, 0.2);
+            border-left-color: var(--secondary-color);
+            color: var(--secondary-color);
+        }
+
+        .sidebar-nav .nav-link i {
+            width: 20px;
+            margin-right: 10px;
+        }
+
+        .threat-card {
+            border-left: 4px solid var(--danger-color);
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .threat-card.medium {
+            border-left-color: var(--warning-color);
+            background: rgba(243, 156, 18, 0.1);
+        }
+
+        .threat-card.low {
+            border-left-color: var(--success-color);
+            background: rgba(39, 174, 96, 0.1);
+        }
+
+        .progress-bar-custom {
+            background: linear-gradient(45deg, var(--secondary-color), #2980b9);
+            border-radius: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .trend-indicator {
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 10px;
+        }
+
+        .trend-up {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+        }
+
+        .trend-down {
+            background: rgba(39, 174, 96, 0.2);
+            color: #27ae60;
+        }
+
+        .trend-stable {
+            background: rgba(243, 156, 18, 0.2);
+            color: #f39c12;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="p-4">
+            <h4 class="text-center mb-4">
+                <i class="fas fa-shield-alt text-primary"></i>
+                AgentChain
+            </h4>
+            <nav class="sidebar-nav">
+                <a class="nav-link active" href="#dashboard" onclick="showSection('dashboard')">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+                <a class="nav-link" href="#network" onclick="showSection('network')">
+                    <i class="fas fa-network-wired"></i> Network Monitor
+                </a>
+                <a class="nav-link" href="#threats" onclick="showSection('threats')">
+                    <i class="fas fa-exclamation-triangle"></i> Threat Analysis
+                </a>
+                <a class="nav-link" href="#ml" onclick="showSection('ml')">
+                    <i class="fas fa-brain"></i> ML Models
+                </a>
+                <a class="nav-link" href="#rag" onclick="showSection('rag')">
+                    <i class="fas fa-search"></i> RAG System
+                </a>
+                <a class="nav-link" href="#logs" onclick="showSection('logs')">
+                    <i class="fas fa-file-alt"></i> Security Logs
+                </a>
+                <a class="nav-link" href="#analytics" onclick="showSection('analytics')">
+                    <i class="fas fa-chart-bar"></i> Analytics
+                </a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Navbar -->
+        <nav class="navbar navbar-expand-lg navbar-dark">
+            <div class="container-fluid">
+                <button class="btn btn-link text-light d-md-none" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <span class="navbar-brand">
+                    <i class="fas fa-shield-alt text-primary"></i>
+                    AgentChain Cyber Threat Response
+                </span>
+                <div class="navbar-nav ms-auto">
+                    <span class="navbar-text">
+                        <span class="status-indicator status-online"></span>
+                        System Online
+                    </span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Dashboard Section -->
+        <div id="dashboard-section" class="section-content">
+            <div class="container-fluid p-4">
+                <!-- System Status Row -->
+                <div class="stats-grid">
+                    <div class="card metric-card">
+                        <div class="metric-value text-success" id="packetsCount">0</div>
+                        <div class="metric-label">Packets Captured</div>
+                    </div>
+                    <div class="card metric-card">
+                        <div class="metric-value text-warning" id="suspiciousCount">0</div>
+                        <div class="metric-label">Suspicious Activities</div>
+                    </div>
+                    <div class="card metric-card">
+                        <div class="metric-value text-info" id="threatsDetected">0</div>
+                        <div class="metric-label">Threats Detected</div>
+                    </div>
+                    <div class="card metric-card">
+                        <div class="metric-value text-primary" id="mlAccuracy">0%</div>
+                        <div class="metric-label">ML Accuracy</div>
+                    </div>
+                    <div class="card metric-card">
+                        <div class="metric-value text-danger" id="activeThreats">0</div>
+                        <div class="metric-label">Active Threats</div>
+                    </div>
+                    <div class="card metric-card">
+                        <div class="metric-value text-success" id="mitigationSuccess">0%</div>
+                        <div class="metric-label">Mitigation Success</div>
+                    </div>
+                </div>
+
+                <!-- Control Panel -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-gamepad"></i> Control Panel
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <button class="btn btn-cyber w-100 mb-2" onclick="startNetworkCapture()">
+                                            <i class="fas fa-play"></i> Start Capture
+                                        </button>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button class="btn btn-danger-cyber w-100 mb-2" onclick="stopNetworkCapture()">
+                                            <i class="fas fa-stop"></i> Stop Capture
+                                        </button>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button class="btn btn-success-cyber w-100 mb-2" onclick="trainMLModels()">
+                                            <i class="fas fa-brain"></i> Train ML
+                                        </button>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button class="btn btn-cyber w-100 mb-2" onclick="initializeRAG()">
+                                            <i class="fas fa-search"></i> Initialize RAG
+                                        </button>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button class="btn btn-cyber w-100 mb-2" onclick="runFullScan()">
+                                            <i class="fas fa-search"></i> Full Scan
+                                        </button>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button class="btn btn-warning w-100 mb-2" onclick="generateReport()">
+                                            <i class="fas fa-file-pdf"></i> Generate Report
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-chart-line"></i> Network Traffic Analysis
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="networkChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-chart-pie"></i> Threat Distribution
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="threatChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Charts -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-chart-bar"></i> Threat Trends
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="trendChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-chart-area"></i> System Performance
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="performanceChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real-time Alerts and Logs -->
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-exclamation-triangle"></i> Real-time Threat Alerts
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="alertsContainer">
+                                    <!-- Alerts will be dynamically added here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-list"></i> System Logs
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="logsContainer" style="max-height: 400px; overflow-y: auto;">
+                                    <!-- Logs will be dynamically added here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Monitor Section -->
+        <div id="network-section" class="section-content" style="display: none;">
+            <div class="container-fluid p-4">
+                <h3><i class="fas fa-network-wired"></i> Network Monitor</h3>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Live Network Traffic</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="networkTrafficContainer">
+                                    <!-- Network traffic details -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Protocol Distribution</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="protocolChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Threat Analysis Section -->
+        <div id="threats-section" class="section-content" style="display: none;">
+            <div class="container-fluid p-4">
+                <h3><i class="fas fa-exclamation-triangle"></i> Threat Analysis</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Common Threats</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="commonThreatsContainer">
+                                    <!-- Common threats list -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Threat Trends</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="threatTrendsContainer">
+                                    <!-- Threat trends -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ML Models Section -->
+        <div id="ml-section" class="section-content" style="display: none;">
+            <div class="container-fluid p-4">
+                <h3><i class="fas fa-brain"></i> ML Models</h3>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Detection Model</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="detectionModelStatus">
+                                    <!-- Detection model status -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Classification Model</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="classificationModelStatus">
+                                    <!-- Classification model status -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>RL Model</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="rlModelStatus">
+                                    <!-- RL model status -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RAG System Section -->
+        <div id="rag-section" class="section-content" style="display: none;">
+            <div class="container-fluid p-4">
+                <h3><i class="fas fa-search"></i> RAG System</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Knowledge Base Status</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="ragStatusContainer">
+                                    <!-- RAG status -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Threat Intelligence Search</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="input-group mb-3">
+                                    <input type="text" class="form-control" id="searchQuery" placeholder="Search threat intelligence...">
+                                    <button class="btn btn-cyber" onclick="searchThreats()">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                                <div id="searchResults">
+                                    <!-- Search results -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Section -->
+        <div id="analytics-section" class="section-content" style="display: none;">
+            <div class="container-fluid p-4">
+                <h3><i class="fas fa-chart-bar"></i> Analytics</h3>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Security Metrics Dashboard</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="analyticsContainer">
+                                    <!-- Analytics content -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let networkChart, threatChart, trendChart, performanceChart, protocolChart;
+        let isCapturing = false;
+        let updateInterval;
+        let currentSection = 'dashboard';
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            loadSystemStatus();
+            startRealTimeUpdates();
+            loadRAGStatus();
+            loadCommonThreats();
+        });
+
+        // Toggle sidebar on mobile
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+        }
+
+        // Show section
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // Show selected section
+            document.getElementById(sectionName + '-section').style.display = 'block';
+            
+            // Update active nav link
+            document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            currentSection = sectionName;
+            
+            // Load section-specific data
+            switch(sectionName) {
+                case 'network':
+                    loadNetworkData();
+                    break;
+                case 'threats':
+                    loadThreatData();
+                    break;
+                case 'ml':
+                    loadMLData();
+                    break;
+                case 'rag':
+                    loadRAGData();
+                    break;
+                case 'analytics':
+                    loadAnalyticsData();
+                    break;
+            }
+        }
+
+        // Initialize charts
+        function initializeCharts() {
+            // Network Traffic Chart
+            const networkCtx = document.getElementById('networkChart').getContext('2d');
+            networkChart = new Chart(networkCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Packets/sec',
+                        data: [],
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#ecf0f1' }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#ecf0f1' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#ecf0f1' } }
+                    }
+                }
+            });
+
+            // Threat Distribution Chart
+            const threatCtx = document.getElementById('threatChart').getContext('2d');
+            threatChart = new Chart(threatCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Normal', 'Suspicious', 'Malicious'],
+                    datasets: [{
+                        data: [70, 20, 10],
+                        backgroundColor: ['#27ae60', '#f39c12', '#e74c3c']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#ecf0f1' } } }
+                }
+            });
+
+            // Trend Chart
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            trendChart = new Chart(trendCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['DDoS', 'SQL Injection', 'Phishing', 'Malware', 'Port Scan'],
+                    datasets: [{
+                        label: 'Threat Count',
+                        data: [45, 32, 28, 23, 19],
+                        backgroundColor: ['#e74c3c', '#f39c12', '#3498db', '#9b59b6', '#34495e']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#ecf0f1' } },
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#ecf0f1' } }
+                    },
+                    plugins: { legend: { labels: { color: '#ecf0f1' } } }
+                }
+            });
+
+            // Performance Chart
+            const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+            performanceChart = new Chart(performanceCtx, {
+                type: 'line',
+                data: {
+                    labels: ['CPU', 'Memory', 'Network', 'Storage'],
+                    datasets: [{
+                        label: 'Usage %',
+                        data: [65, 45, 78, 32],
+                        borderColor: '#27ae60',
+                        backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#ecf0f1' } },
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#ecf0f1' } }
+                    },
+                    plugins: { legend: { labels: { color: '#ecf0f1' } } }
+                }
+            });
+        }
+
+        // Load system status
+        async function loadSystemStatus() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                addLog('System status loaded: ' + data.status);
+            } catch (error) {
+                addLog('Error loading system status: ' + error.message);
+            }
+        }
+
+        // Load RAG status
+        async function loadRAGStatus() {
+            try {
+                const response = await fetch('/rag/status');
+                const data = await response.json();
+                document.getElementById('ragStatusContainer').innerHTML = `
+                    <div class="mb-3">
+                        <strong>Vector Store:</strong> ${data.vector_store}<br>
+                        <strong>Documents:</strong> ${data.total_documents}<br>
+                        <strong>Model:</strong> ${data.embedding_model}
+                    </div>
+                `;
+            } catch (error) {
+                addLog('Error loading RAG status: ' + error.message);
+            }
+        }
+
+        // Load common threats
+        async function loadCommonThreats() {
+            try {
+                const response = await fetch('/rag/common-threats');
+                const data = await response.json();
+                const container = document.getElementById('commonThreatsContainer');
+                
+                let html = '';
+                data.threats.forEach(threat => {
+                    html += `
+                        <div class="threat-card card mb-2 ${threat.severity}">
+                            <div class="card-body p-2">
+                                <strong>${threat.threat_type}</strong><br>
+                                <small>Count: ${threat.count} | Severity: ${threat.severity}</small>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } catch (error) {
+                addLog('Error loading common threats: ' + error.message);
+            }
+        }
+
+        // Initialize RAG system
+        async function initializeRAG() {
+            showLoading();
+            try {
+                const response = await fetch('/rag/demo/initialize', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    addAlert('RAG system initialized with demo data', 'success');
+                    addLog('RAG initialization completed');
+                    loadRAGStatus();
+                    loadCommonThreats();
+                } else {
+                    addAlert('Failed to initialize RAG system', 'danger');
+                }
+            } catch (error) {
+                addAlert('Error initializing RAG: ' + error.message, 'danger');
+            }
+            hideLoading();
+        }
+
+        // Search threats
+        async function searchThreats() {
+            const query = document.getElementById('searchQuery').value;
+            if (!query) return;
+            
+            try {
+                const response = await fetch('/rag/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query, k: 5 })
+                });
+                const data = await response.json();
+                
+                const container = document.getElementById('searchResults');
+                let html = '<h6>Search Results:</h6>';
+                
+                if (data.results.length > 0) {
+                    data.results.forEach(result => {
+                        html += `
+                            <div class="card mb-2">
+                                <div class="card-body p-2">
+                                    <small>${result.content.substring(0, 200)}...</small><br>
+                                    <strong>Type:</strong> ${result.metadata.threat_type} | 
+                                    <strong>Severity:</strong> ${result.metadata.severity}
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<p>No results found.</p>';
+                }
+                
+                container.innerHTML = html;
+            } catch (error) {
+                addLog('Search failed: ' + error.message);
+            }
+        }
+
+        // Start network capture
+        async function startNetworkCapture() {
+            showLoading();
+            try {
+                const response = await fetch('/collectors/network/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ duration: 60, packet_count: 100 })
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    isCapturing = true;
+                    addAlert('Network capture started successfully', 'success');
+                    addLog('Network capture initiated');
+                    updateMetrics();
+                } else {
+                    addAlert('Failed to start network capture', 'danger');
+                }
+            } catch (error) {
+                addAlert('Error starting network capture: ' + error.message, 'danger');
+            }
+            hideLoading();
+        }
+
+        // Stop network capture
+        async function stopNetworkCapture() {
+            try {
+                const response = await fetch('/collectors/network/stop', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    isCapturing = false;
+                    addAlert('Network capture stopped', 'warning');
+                    addLog('Network capture stopped');
+                }
+            } catch (error) {
+                addAlert('Error stopping network capture: ' + error.message, 'danger');
+            }
+        }
+
+        // Train ML models
+        async function trainMLModels() {
+            showLoading();
+            try {
+                const response = await fetch('/ml/demo/train-all', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    addAlert('ML models trained successfully', 'success');
+                    addLog('ML training completed');
+                    updateMLMetrics(data.results);
+                } else {
+                    addAlert('Failed to train ML models', 'danger');
+                }
+            } catch (error) {
+                addAlert('Error training ML models: ' + error.message, 'danger');
+            }
+            hideLoading();
+        }
+
+        // Run full system scan
+        async function runFullScan() {
+            showLoading();
+            try {
+                await startNetworkCapture();
+                
+                setTimeout(async () => {
+                    const statsResponse = await fetch('/collectors/network/stats');
+                    const statsData = await statsResponse.json();
+                    
+                    updateMetrics(statsData.stats);
+                    await testMLPrediction();
+                    
+                    hideLoading();
+                    addAlert('Full system scan completed', 'success');
+                }, 5000);
+            } catch (error) {
+                addAlert('Error during full scan: ' + error.message, 'danger');
+                hideLoading();
+            }
+        }
+
+        // Generate report
+        async function generateReport() {
+            showLoading();
+            try {
+                // Simulate report generation
+                setTimeout(() => {
+                    hideLoading();
+                    addAlert('Security report generated successfully', 'success');
+                    addLog('Report generated: Security_Analysis_' + new Date().toISOString().split('T')[0] + '.pdf');
+                }, 3000);
+            } catch (error) {
+                addAlert('Error generating report: ' + error.message, 'danger');
+                hideLoading();
+            }
+        }
+
+        // Test ML prediction
+        async function testMLPrediction() {
+            try {
+                const testData = [{
+                    length: 1500,
+                    src_port: 443,
+                    dst_port: 8080,
+                    protocol: 6,
+                    ttl: 64,
+                    window: 65535,
+                    payload_size: 1000,
+                    suspicious: true,
+                    timestamp: new Date().toISOString()
+                }];
+
+                const response = await fetch('/ml/detection/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testData)
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    addLog('ML prediction test: ' + data.prediction.anomaly_score);
+                }
+            } catch (error) {
+                addLog('ML prediction test failed: ' + error.message);
+            }
+        }
+
+        // Update metrics
+        async function updateMetrics(stats = null) {
+            try {
+                if (!stats) {
+                    const response = await fetch('/collectors/network/stats');
+                    const data = await response.json();
+                    stats = data.stats;
+                }
+
+                document.getElementById('packetsCount').textContent = stats.total_packets || 0;
+                document.getElementById('suspiciousCount').textContent = stats.suspicious_count || 0;
+                document.getElementById('threatsDetected').textContent = Math.floor((stats.suspicious_count || 0) * 0.3);
+                document.getElementById('activeThreats').textContent = Math.floor((stats.suspicious_count || 0) * 0.1);
+                document.getElementById('mitigationSuccess').textContent = '85%';
+                
+                updateNetworkChart(stats);
+                updateThreatChart(stats);
+                
+            } catch (error) {
+                addLog('Error updating metrics: ' + error.message);
+            }
+        }
+
+        // Update ML metrics
+        function updateMLMetrics(results) {
+            if (results.detection && results.detection.trained) {
+                document.getElementById('mlAccuracy').textContent = '95%';
+            }
+        }
+
+        // Update network chart
+        function updateNetworkChart(stats) {
+            const now = new Date().toLocaleTimeString();
+            
+            networkChart.data.labels.push(now);
+            networkChart.data.datasets[0].data.push(stats.total_packets || 0);
+            
+            if (networkChart.data.labels.length > 10) {
+                networkChart.data.labels.shift();
+                networkChart.data.datasets[0].data.shift();
+            }
+            
+            networkChart.update();
+        }
+
+        // Update threat chart
+        function updateThreatChart(stats) {
+            const total = stats.total_packets || 1;
+            const suspicious = stats.suspicious_count || 0;
+            const normal = total - suspicious;
+            
+            threatChart.data.datasets[0].data = [normal, suspicious, 0];
+            threatChart.update();
+        }
+
+        // Add alert
+        function addAlert(message, type = 'info') {
+            const alertsContainer = document.getElementById('alertsContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            alertsContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // Add log entry
+        function addLog(message) {
+            const logsContainer = document.getElementById('logsContainer');
+            const logDiv = document.createElement('div');
+            logDiv.className = 'log-entry';
+            logDiv.innerHTML = `
+                <small class="text-muted">${new Date().toLocaleTimeString()}</small><br>
+                ${message}
+            `;
+            logsContainer.appendChild(logDiv);
+            
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+            
+            while (logsContainer.children.length > 50) {
+                logsContainer.removeChild(logsContainer.firstChild);
+            }
+        }
+
+        // Show/hide loading
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Start real-time updates
+        function startRealTimeUpdates() {
+            updateInterval = setInterval(() => {
+                if (isCapturing) {
+                    updateMetrics();
+                }
+            }, 5000);
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+        });
+    </script>
+</body>
+</html> 

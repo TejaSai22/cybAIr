@@ -7,6 +7,9 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), 'isolation_forest.joblib')
 
 class AnomalyDetector:
     def __init__(self):
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
+        
         if os.path.exists(MODEL_PATH):
             self.model = joblib.load(MODEL_PATH)
         else:

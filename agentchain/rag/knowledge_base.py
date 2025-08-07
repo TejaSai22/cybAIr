@@ -87,6 +87,9 @@ class ThreatKnowledgeBase:
         """Initialize FAISS vector store"""
         try:
             index_path = settings.faiss_index_path
+            # Ensure the directory exists
+            os.makedirs(os.path.dirname(index_path), exist_ok=True)
+            
             if os.path.exists(index_path):
                 self.vector_store = FAISS.load_local(index_path, self.embeddings)
                 logger.info(f"Loaded existing FAISS index from {index_path}")

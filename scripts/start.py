@@ -43,7 +43,12 @@ NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=password
 
-# OpenAI (for LLM features)
+# LLM Configuration
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2
+
+# Optional: OpenAI Configuration (fallback)
 OPENAI_API_KEY=your_openai_api_key_here
 
 # RAG/Embedding
@@ -56,7 +61,8 @@ PINECONE_ENV=
         with open('.env', 'w') as f:
             f.write(env_content)
         print("✅ Created .env file")
-        print("⚠️  Please update OPENAI_API_KEY in .env file")
+        print("⚠️  Please ensure Ollama is running on http://localhost:11434")
+        print("⚠️  Optional: Update OPENAI_API_KEY in .env file for fallback")
     else:
         print("✅ .env file already exists")
 
@@ -84,11 +90,12 @@ def main():
     create_env_file()
     
     print("\n📋 Next steps:")
-    print("1. Update OPENAI_API_KEY in .env file")
-    print("2. Run: docker-compose up -d")
-    print("3. Run: python scripts/setup_pipeline.py")
-    print("4. Run: uvicorn agentchain.api.main:app --reload")
-    print("5. Run: python scripts/test_pipeline.py")
+    print("1. Ensure Ollama is running on http://localhost:11434")
+    print("2. Optional: Update OPENAI_API_KEY in .env file for fallback")
+    print("3. Run: docker-compose up -d")
+    print("4. Run: python scripts/setup_pipeline.py")
+    print("5. Run: uvicorn agentchain.api.main:app --reload")
+    print("6. Run: python scripts/test_pipeline.py")
     
     print("\n🎉 Setup complete! Follow the steps above to start AgentChain.")
 

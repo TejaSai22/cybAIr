@@ -198,7 +198,7 @@ class SecurityLogCollector:
             thread = threading.Thread(
                 target=self.monitor_log_file,
                 args=(log_path, log_type),
-                daemon=False  # Non-daemon to prevent crashes
+                daemon=True  # Daemon to allow proper shutdown
             )
             thread.start()
             threads.append(thread)

@@ -140,11 +140,11 @@ class NetworkCollector:
         self.is_capturing = True
         
         try:
-            # Start capture in a separate thread (non-daemon to prevent crashes)
+            # Start capture in a separate thread (daemon to allow proper shutdown)
             capture_thread = threading.Thread(
                 target=self._capture_packets,
                 args=(duration,),
-                daemon=False
+                daemon=True
             )
             capture_thread.start()
             

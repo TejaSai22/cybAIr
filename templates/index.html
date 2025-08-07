@@ -397,6 +397,11 @@
                                             <i class="fas fa-file-pdf"></i> Generate Report
                                         </button>
                                     </div>
+                                    <div class="col-md-2">
+                                        <button class="btn btn-info w-100 mb-2" onclick="testThreatClassification()">
+                                            <i class="fas fa-bullseye"></i> Test Accuracy
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -590,6 +595,28 @@
                             <div class="card-body">
                                 <div id="classificationModelStatus">
                                     <!-- Classification model status -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Classification Accuracy</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="classificationAccuracyDetails">
+                                    <div class="text-center">
+                                                                                 <h3 class="text-primary" id="accuracyPercentage">0%</h3>
+                                         <p class="text-muted">Threat Classification Accuracy</p>
+                                         <div class="progress mb-3">
+                                             <div class="progress-bar progress-bar-custom" id="accuracyProgress" style="width: 0%"></div>
+                                         </div>
+                                        <small class="text-muted">
+                                            <span id="totalClassifications">0</span> total classifications<br>
+                                            <span id="successfulClassifications">0</span> successful
+                                        </small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1080,6 +1107,33 @@
             }
         }
 
+        // Test threat classification and update accuracy
+        async function testThreatClassification() {
+            try {
+                const testThreats = [
+                    {"source_ip": "192.168.1.100", "dest_ip": "10.0.0.1", "port": 80},
+                    {"source_ip": "10.0.0.50", "dest_ip": "192.168.1.1", "port": 22},
+                    {"source_ip": "172.16.0.10", "dest_ip": "8.8.8.8", "port": 443}
+                ];
+
+                for (const threat of testThreats) {
+                    const response = await fetch('/classification/classify', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ payload: threat })
+                    });
+                    
+                    const result = await response.json();
+                    addLog('Threat classified: ' + result.threat_type);
+                    
+                    // Update accuracy display
+                    await updateMetrics();
+                }
+            } catch (error) {
+                addLog('Threat classification test failed: ' + error.message);
+            }
+        }
+
         // Update metrics
         async function updateMetrics(stats = null) {
             try {
@@ -1089,11 +1143,33 @@
                     stats = data.stats;
                 }
 
+                // Update network metrics
                 document.getElementById('packetsCount').textContent = stats.total_packets || 0;
                 document.getElementById('suspiciousCount').textContent = stats.suspicious_count || 0;
                 document.getElementById('threatsDetected').textContent = Math.floor((stats.suspicious_count || 0) * 0.3);
                 document.getElementById('activeThreats').textContent = Math.floor((stats.suspicious_count || 0) * 0.1);
                 document.getElementById('mitigationSuccess').textContent = '85%';
+                
+                // Fetch and update classification accuracy
+                try {
+                    const accuracyResponse = await fetch('/classification/accuracy');
+                    const accuracyData = await accuracyResponse.json();
+                    const accuracyPercent = accuracyData.accuracy_percentage;
+                    
+                    // Update main dashboard metric
+                    document.getElementById('mlAccuracy').textContent = accuracyPercent + '%';
+                    
+                    // Update detailed accuracy section
+                    document.getElementById('accuracyPercentage').textContent = accuracyPercent + '%';
+                    document.getElementById('accuracyProgress').style.width = accuracyPercent + '%';
+                    document.getElementById('totalClassifications').textContent = accuracyData.total_classifications;
+                    document.getElementById('successfulClassifications').textContent = accuracyData.successful_classifications;
+                                   } catch (error) {
+                       // Fallback to default accuracy if API fails
+                       document.getElementById('mlAccuracy').textContent = '0%';
+                       document.getElementById('accuracyPercentage').textContent = '0%';
+                       document.getElementById('accuracyProgress').style.width = '0%';
+                   }
                 
                 updateNetworkChart(stats);
                 updateThreatChart(stats);

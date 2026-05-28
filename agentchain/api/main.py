@@ -1,5 +1,8 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from agentchain.common.config import settings
+import random
+import time
 
 # Import agent routers
 from agentchain.detection.api import router as detection_router
@@ -18,9 +21,30 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Add CORS middleware to allow React frontend (port 5173) to connect
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/health")
 def health_check():
     return {"status": "ok", "service": "AgentChain", "version": "1.0.0"}
+
+@app.get("/api/stats")
+def get_stats():
+    """Mock stats endpoint for the dashboard (would normally query Neo4j or Kafka)"""
+    return {
+        "packetsCaptured": f"{random.uniform(1.0, 5.0):.1f}M",
+        "suspiciousActivities": random.randint(100, 500),
+        "threatsDetected": random.randint(10, 50),
+        "mlAccuracy": f"{random.uniform(94.0, 99.5):.1f}%",
+        "activeThreats": random.randint(0, 5),
+        "mitigationSuccess": f"{random.uniform(97.0, 100.0):.1f}%"
+    }
 
 # Register agent routers
 app.include_router(detection_router, prefix="/detection", tags=["Detection"])

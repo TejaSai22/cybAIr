@@ -39,8 +39,20 @@ services:
       - neo4j_import:/var/lib/neo4j/import
       - neo4j_plugins:/plugins
 
+  # AgentChain API Server
+  api_server:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - kafka
+      - neo4j
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - NEO4J_URI=bolt://neo4j:7687
+
 volumes:
   neo4j_data:
   neo4j_logs:
   neo4j_import:
-  neo4j_plugins: 
+  neo4j_plugins:

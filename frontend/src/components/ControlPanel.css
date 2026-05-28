@@ -1,0 +1,24 @@
+.control-panel {
+  padding: 24px;
+  margin-top: 24px;
+}
+
+.panel-header {
+  margin-bottom: 20px;
+}
+
+.panel-header h3 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.controls-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.controls-grid button {
+  flex: 1 1 calc(25% - 12px);
+  min-width: 140px;
+}

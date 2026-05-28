@@ -100,7 +100,7 @@ AgentChain is a **production-ready cybersecurity system** that combines multiple
 - **FastAPI** - High-performance web framework
 - **Ollama** - Local LLM for threat classification
 - **scikit-learn** - Machine learning models
-- **RLlib** - Reinforcement learning for mitigation
+- **Custom Q-Learning** - Reinforcement learning for mitigation
 - **FAISS** - Vector similarity search
 - **LangChain** - LLM orchestration
 
@@ -142,7 +142,7 @@ AgentChain is a **production-ready cybersecurity system** that combines multiple
 - **Escalation Logic**: Human intervention triggers
 
 #### **Mitigation Agent**
-- **Reinforcement Learning**: Q-Learning and Policy Gradient
+- **Reinforcement Learning**: Custom Tabular Q-Learning Implementation
 - **Optimal Response Selection**: AI-driven mitigation strategies
 - **Action Execution**: Automated threat containment
 
